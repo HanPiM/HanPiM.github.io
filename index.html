@@ -1,10 +1,78 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
+
 <head>
-  <meta charset="UTF-8">
-  <title>test</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <title>曲线填充生成器（使用 MathJax）</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script src="./point_maker.js"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+    </script>
 </head>
+
 <body>
-  ababa
+    绘制目标<br><textarea id="target_obj" rows="8" cols="80">{rho:(t)=>1-Math.sin(t)}</textarea><br>
+    <p>
+        输出精度（保留小数位数）：<input id="output_fixed" size="2" value="2" oninput="value=value.replace(/[^\d]/g,'')"/>
+        填充步长：<input id="fill_step" size="2" value="1" oninput="value=value.replace(/[^\d\.]/g,'')"/>
+        输出缩放：<input id="output_zoom" size="2" value="25" oninput="value=value.replace(/[^\d\.]/g,'')"/>
+        <button id="start_gen" onclick="{func_start_gen()}">生成</button>
+        <button onclick="copy_to_clip(document.getElementById('out_src').innerHTML,null)">复制生成结果</button>
+        <br>
+        自变量范围：<input id="t_left" size="1" value="0" oninput="value=value.replace(/[^\d-\.]/g,'')"/> -
+        <input id="t_right" size="1" value="6.28" oninput="value=value.replace(/[^\d\.-]/g,'')"/>
+        <br>
+        初始采样点数：<input id="makepoint_cnt" size="1" value="1000" oninput="value=value.replace(/[^\d]/g,'')"/>
+        简化阈值：<input id="RDP_epsilon" size="3" value="0.0005" oninput="value=value.replace(/[^\d\.]/g,'')"/>（Ramer-Douglas-Peucker 算法中的 epsilon 参数）
+        
+    </p>
+    <p id="gen_info"></p> 基于 MathJaX 的预览：
+    <p id="outfor_mathjax"></p>
+    <code id="out_src"></code>
+    <script>
+        function copy_to_clip(content, message) {
+            if(content=="")return;
+            var aux = document.createElement("input");
+            aux.setAttribute("value", content);
+            document.body.appendChild(aux);
+            aux.select();
+            document.execCommand("copy");
+            document.body.removeChild(aux);
+            if (message == null) {
+                alert("复制成功");
+            } else {
+                alert(message);
+            }
+        }
+        function f() {
+            eval(
+                "ps_mker.from("
+                +document.getElementById("target_obj").value + ",["
+                +document.getElementById("t_left").value+","
+                +document.getElementById("t_right").value+"],"+
+                +document.getElementById("makepoint_cnt").value+")"
+                );
+            ps_mker.simplify_RDP(parseFloat(
+                document.getElementById("RDP_epsilon").value
+                ));
+            console.log("points group count:", ps_mker.points.length);
+        }
+        function func_start_gen() {
+            var fixed = parseInt(document.getElementById("output_fixed").value);
+            var step = parseFloat(document.getElementById("fill_step").value);
+            var zoom = parseFloat(document.getElementById("output_zoom").value);
+            if (!fixed) fixed = 3;
+            if (!step) step = 1;
+            if (!zoom) zoom = 1;
+            f();
+            var tmp = F(fixed, step, zoom);
+            document.getElementById("out_src").innerHTML = tmp;
+            document.getElementById("gen_info").innerHTML = "总长度 "+tmp.length+" 采样组数 "+ps_mker.points.length;
+            document.getElementById("outfor_mathjax").innerHTML = "\\[" + tmp + "\\]";
+            MathJax.typeset();
+        }
+    </script>
 </body>
+
 </html>
